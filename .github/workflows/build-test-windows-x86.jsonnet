@@ -4,7 +4,7 @@ local semgrep = import 'libs/semgrep.libsonnet';
 
 // actually not exported for now to other workflows, but we might,
 // and at least can be downloaded from the GHA job page.
-local artifact_name = 'semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}';
+local artifact_name = 'opengrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}';
 
 local wheel_name = 'windows-x86-wheel';
 local runs_on = 'windows-latest';
@@ -77,7 +77,7 @@ local build_core_job = {
         # this should be fdopen's opan, so 2.0.10
         opam --version
         opam repo
-        # we should be on 4.14.0~mingw
+        # we should be on 5.2.1~mingw
         opam switch
      |||,
     },
@@ -108,12 +108,12 @@ local build_core_job = {
       name: 'Install OPAM deps',
       run: |||
         export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-        make install-deps-WINDOWS-for-semgrep-core
+        make install-deps-WINDOWS-for-opengrep-core
         make install-opam-deps
       |||,
     },
     {
-      name: 'Build semgrep-core',
+      name: 'Build opengrep-core',
       run: |||
         export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
         export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
@@ -125,22 +125,22 @@ local build_core_job = {
           grep -v rpath $filename > $filename.new
           mv $filename.new $filename
         done
-        opam exec -- dune build _build/install/default/bin/semgrep-core.exe
+        opam exec -- dune build _build/install/default/bin/opengrep-core.exe
       |||,
     },
     {
-      name: 'Test semgrep-core',
-      //TODO: semgrep-core displays also parse errors in the JSON output
+      name: 'Test opengrep-core',
+      //TODO: opengrep-core displays also parse errors in the JSON output
       // weird. CRLF windows issue?
       run: |||
-        _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
+        _build/install/default/bin/opengrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
       |||,
     },
     {
-      name: 'Package semgrep-core',
+      name: 'Package opengrep-core',
       run: |||
         mkdir artifacts
-        cp _build/install/default/bin/semgrep-core.exe artifacts/
+        cp _build/install/default/bin/opengrep-core.exe artifacts/
 
         # TODO: somehow upgrade to the latest flexdll, which should allow us
         # to statically link these libraries
@@ -216,10 +216,10 @@ local test_wheels_job = {
     },
     {
       name: 'test package',
-      run: 'semgrep --version',
+      run: 'opengrep --version',
     },
     {
-      name: 'e2e semgrep-core test',
+      name: 'e2e opengrep-core test',
       run: 'echo \'1 == 1\' | semgrep -l python -e \'$X == $X\' -'
     },
   ],

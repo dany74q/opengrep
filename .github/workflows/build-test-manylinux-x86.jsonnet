@@ -53,7 +53,7 @@ local build_wheels_job = {
     {
       run: |||
         tar xf artifacts.tgz
-        cp artifacts/semgrep-core cli/src/semgrep/bin
+        cp artifacts/opengrep-core cli/src/semgrep/bin
         ./scripts/build-wheels.sh
       |||,
     },
@@ -90,11 +90,11 @@ local test_wheels_job = {
       name: 'test package',
       run: |||
         export PATH=/opt/python/cp39-cp39/bin:$PATH
-        semgrep --version
+        opengrep --version
       |||,
     },
     {
-      name: 'e2e semgrep-core test',
+      name: 'e2e opengrep-core test',
       run: |||
         export PATH=/opt/python/cp39-cp39/bin:$PATH
         echo '1 == 1' | semgrep -l python -e '$X == $X' -
@@ -129,11 +129,11 @@ local test_wheels_venv_job = {
     {
       name: 'test package',
       run: |||
-        env/bin/semgrep --version
+        env/bin/opengrep --version
       |||,
     },
     {
-      name: 'e2e semgrep-core test',
+      name: 'e2e opengrep-core test',
       run: |||
         echo '1 == 1' | env/bin/semgrep -l python -e '$X == $X' -
       |||,
@@ -172,11 +172,11 @@ local test_wheels_wsl_job = {
       name: 'test package',
       shell: 'wsl-bash {0}',
       run: |||
-        semgrep --version
+        opengrep --version
       |||,
     },
     {
-      name: 'e2e semgrep-core test',
+      name: 'e2e opengrep-core test',
       shell: 'wsl-bash {0}',
       run: |||
         echo '1 == 1' | semgrep -l python -e '$X == $X' -

@@ -22,7 +22,7 @@ jobs:
         name: Set GHA cache for OPAM in _opam
         uses: actions/cache@v3
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-4.14.0-${{ hashFiles('semgrep.opam') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{ hashFiles('semgrep.opam') }}
           path: _opam
       - name: Debug stuff
         run: |
@@ -42,7 +42,7 @@ jobs:
           # this should be fdopen's opan, so 2.0.10
           opam --version
           opam repo
-          # we should be on 4.14.0~mingw
+          # we should be on 5.2.1~mingw
           opam switch
       - env:
           CC: x86_64-w64-mingw32-gcc
@@ -58,9 +58,9 @@ jobs:
       - name: Install OPAM deps
         run: |
           export PATH="${CYGWIN_ROOT_BIN}:${PATH}"
-          make install-deps-WINDOWS-for-semgrep-core
+          make install-deps-WINDOWS-for-opengrep-core
           make install-opam-deps
-      - name: Build semgrep-core
+      - name: Build opengrep-core
         run: |
           export PATH=\"${CYGWIN_ROOT_BIN}:${PATH}\"
           export TREESITTER_INCDIR=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/include
@@ -72,14 +72,14 @@ jobs:
             grep -v rpath $filename > $filename.new
             mv $filename.new $filename
           done
-          opam exec -- dune build _build/install/default/bin/semgrep-core.exe
-      - name: Test semgrep-core
+          opam exec -- dune build _build/install/default/bin/opengrep-core.exe
+      - name: Test opengrep-core
         run: |
-          _build/install/default/bin/semgrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
-      - name: Package semgrep-core
+          _build/install/default/bin/opengrep-core.exe -l python -rules tests/windows/rules.yml -json tests/windows/test.py
+      - name: Package opengrep-core
         run: |
           mkdir artifacts
-          cp _build/install/default/bin/semgrep-core.exe artifacts/
+          cp _build/install/default/bin/opengrep-core.exe artifacts/
 
           # TODO: somehow upgrade to the latest flexdll, which should allow us
           # to statically link these libraries
@@ -103,7 +103,7 @@ jobs:
           tar czvf artifacts.tgz artifacts
       - uses: actions/upload-artifact@v4
         with:
-          name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
+          name: opengrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
           path: artifacts.tgz
   build-wheels:
     defaults:
@@ -118,7 +118,7 @@ jobs:
           submodules: true
       - uses: actions/download-artifact@v4
         with:
-          name: semgrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
+          name: opengrep-core-and-dependent-libs-w64-artifact-${{ github.sha }}
       - env:
           SEMGREP_FORCE_INSTALL: 1
         run: |
@@ -144,8 +144,8 @@ jobs:
       - name: install package
         run: pip3 install dist/*.whl
       - name: test package
-        run: semgrep --version
-      - name: e2e semgrep-core test
+        run: opengrep --version
+      - name: e2e opengrep-core test
         run: echo '1 == 1' | semgrep -l python -e '$X == $X' -
 name: build-test-windows-x86
 on:

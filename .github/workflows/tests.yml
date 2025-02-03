@@ -195,6 +195,54 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+  test-opengrep-core:
+    container:
+      image: ocamlpro/ocaml:5.2.1
+      options: --user root
+    env:
+      HOME: /root
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        name: Set GHA cache for OPAM in ~/.opam
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{hashFiles('semgrep.opam')}}
+          path: ~/.opam
+      - name: Install dependencies
+        run: |
+          opam switch create 5.2.1
+          eval $(opam env)
+          make install-deps-ALPINE-for-semgrep-core
+          make install-deps-for-semgrep-core
+          apk add --no-cache python3 py3-pip
+          make -C interfaces/semgrep_interfaces setup-ALPINE setup
+      - name: Build opengrep-core
+        run: opam exec -- make core
+      - name: Test opengrep-core (and time it)
+        run: |
+          eval $(opam env)
+          START=`date +%s`
+
+          make core-test
+          make core-test-e2e
+
+          END=`date +%s`
+          TEST_RUN_TIME=$((END-START))
+          curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
+      - if: github.ref == 'refs/heads/develop'
+        name: Report Number of Tests Stats
+        run: ./scripts/report_test_metrics.sh
+      - name: Publish match performance
+        run: opam exec -- make report-perf-matching
   test-osemgrep:
     container:
       image: ocamlpro/ocaml:5.2.1
@@ -280,53 +328,6 @@ jobs:
           - 2
           - 3
           - 4
-  test-opengrep-core:
-    container:
-      image: ocamlpro/ocaml:5.2.1
-      options: --user root
-    env:
-      HOME: /root
-    runs-on: ubuntu-latest
-    steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
-      - env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        name: Set GHA cache for OPAM in ~/.opam
-        uses: actions/cache@v3
-        with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{hashFiles('semgrep.opam')}}
-          path: ~/.opam
-      - name: Install dependencies
-        run: |
-          opam switch create 5.2.1
-          eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
-          make install-deps-for-semgrep-core
-          make -C interfaces/semgrep_interfaces setup-ALPINE setup
-      - name: Build opengrep-core
-        run: opam exec -- make core
-      - name: Test opengrep-core (and time it)
-        run: |
-          eval $(opam env)
-          START=`date +%s`
-
-          make core-test
-          make core-test-e2e
-
-          END=`date +%s`
-          TEST_RUN_TIME=$((END-START))
-          curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-      - if: github.ref == 'refs/heads/develop'
-        name: Report Number of Tests Stats
-        run: ./scripts/report_test_metrics.sh
-      - name: Publish match performance
-        run: opam exec -- make report-perf-matching
   trigger-semgrep-comparison-argo:
     if: ${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}
     needs:

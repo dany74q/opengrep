@@ -1,6 +1,6 @@
 // The goals of this workflow are to check that:
-// - we can build semgrep-core and pysemgrep
-// - all our semgrep-core and pysemgrep (and osemgrep) tests are passing
+// - we can build opengrep-core and pysemgrep
+// - all our opengrep-core and pysemgrep (and osemgrep) tests are passing
 // - we can build a Docker image (for amd64 and arm64)
 // - we can build Linux and MacOS binaries and python "wheels" for pypi
 //   (also for amd64 and arm64)
@@ -89,7 +89,7 @@ local snapshot_update_pr_steps(add_paths, repo_name) = [
 ];
 
 // ----------------------------------------------------------------------------
-// Semgrep-core and osemgrep jobs
+// opengrep-core and osemgrep jobs
 // ----------------------------------------------------------------------------
 
 // This is mostly the same that in build-test-core-x86.jsonnet
@@ -109,18 +109,20 @@ local test_semgrep_core_job =
       {
         name: 'Install dependencies',
         run: |||
+          opam switch create 5.2.1
           eval $(opam env)
           make install-deps-ALPINE-for-semgrep-core
           make install-deps-for-semgrep-core
+          apk add --no-cache python3 py3-pip
           make -C interfaces/semgrep_interfaces setup-ALPINE setup
         |||,
       },
       {
-        name: 'Build semgrep-core',
+        name: 'Build opengrep-core',
         run: 'opam exec -- make core',
       },
       {
-        name: 'Test semgrep-core (and time it)',
+        name: 'Test opengrep-core (and time it)',
         run: |||
           eval $(opam env)
           START=`date +%s`
@@ -145,7 +147,7 @@ local test_semgrep_core_job =
       {
         name: 'Publish match performance',
         // This runs a short test suite to track the match performance
-        // of semgrep-core over time. The results are pushed to the
+        // of opengrep-core over time. The results are pushed to the
         // dashboard at https://dashboard.semgrep.dev/
         run: 'opam exec -- make report-perf-matching',
       },
@@ -199,7 +201,7 @@ local test_cli_job = {
   name: 'test semgrep-cli',
   'runs-on': 'ubuntu-22.04',
   needs: [
-    // Needed for semgrep-core
+    // Needed for opengrep-core
     'build-test-core-x86',
   ],
   permissions: gha.pull_request_permissions,
@@ -333,8 +335,8 @@ local benchmarks_lite_job = {
       name: 'Test dummy benchmarks on latest',
       'working-directory': 'cli',
       run: |||
-        pipenv run semgrep --version
-        pipenv run semgrep-core -version
+        pipenv run opengrep --version
+        pipenv run opengrep-core -version
         pipenv run python3 ../perf/run-benchmarks --dummy
       |||,
     },
@@ -490,7 +492,7 @@ local ignore_md = {
   // (e.g. build-test-javascript)
   permissions: gha.write_permissions,
   jobs: {
-    'test-semgrep-core': test_semgrep_core_job,
+    'test-opengrep-core': test_semgrep_core_job,
     'test-osemgrep': test_osemgrep_job,
     // Pysemgrep tests that require check-semgrep-pro
     'test-cli': test_cli_job,

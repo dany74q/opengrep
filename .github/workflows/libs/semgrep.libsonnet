@@ -72,7 +72,7 @@ local github_bot = {
 // would run very for 35min instead of 10min with caching.
 // The M1 build runs on fast self-hosted runners where caching does not seem
 // to be necessary.
-// In Linux, we use a special container (returntocorp/ocaml:alpine-xxx) to
+// In Linux, we use a special container (ocamlpro/ocaml:tag) to
 // bring in the required dependencies, which makes 'opam switch create'
 // and 'opam install deps' unnecessary and almost a noop.
 // Still, we are gradually getting rid of ocaml-layer and replace it with
@@ -134,8 +134,6 @@ local github_bot = {
 // an upgrade from opam 2.1 to 2.2 which is not captured in the cache key
 // but which should invalidate the cache.
 // This bump_cache is one way to cope with the limitations of our cache keys.
-// Moreover, GHA itself does not have a big "delete all cache" button like
-// in depot.dev so this bump_cache can act as one too.
 local bump_cache = 1;
 
 local cache_opam = {
@@ -174,10 +172,13 @@ local containers = {
   ocaml_alpine: {
     // used in the build-test-osx-xxx jobs but ideally we should get rid
     // of it and rely on opam.lock for caching issues
-    opam_switch: '4.14.0',
+    opam_switch: '5.2.1',
     job: {
       'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:alpine-2024-01-18',
+      container: {
+        image: 'ocamlpro/ocaml:5.2.1',
+        options: '--user root',
+      },
       // We need this hack because GHA tampers with the HOME in container
       // and this does not play well with 'opam' installed in /root
       env: {
@@ -192,10 +193,10 @@ local containers = {
   // more familiar with. It's been cheap to maintain both so far but we could
   // decide to keep just one if it makes things simpler.
   ocaml_ubuntu: {
-    opam_switch: '4.14.0',
+    opam_switch: '5.2.1',
     job: {
       'runs-on': 'ubuntu-latest',
-      container: 'returntocorp/ocaml:ubuntu-2024-01-18',
+      container: 'returntocorp/ocaml:ubuntu5.1',
       env: {
         HOME: '/root',
       },
@@ -259,12 +260,12 @@ local slack = {
 
 // default one
 // coupling: with containers above
-local opam_switch = '4.14.0';
+local opam_switch = '5.2.1';
 
 // this must be done after the checkout as opam installs itself
 // locally in the project folder (/home/runner/work/semgrep/semgrep/_opam)
 // coupling: default is above opam_switch
-local opam_setup = function(opam_switch="4.14.0") {
+local opam_setup = function(opam_switch="5.2.1") {
       uses: 'ocaml/setup-ocaml@v3',
       with: {
         'ocaml-compiler': opam_switch,
@@ -280,8 +281,9 @@ local stable_ubuntu_version_for_setup_ocaml = 'ubuntu-22.04';
 local osemgrep_test_steps_after_checkout = [
   gha.git_safedir,
   {
-    name: 'Build semgrep-core',
+    name: 'Build opengrep-core',
     run: |||
+      opam switch create 5.2.1
       eval $(opam env)
       make install-deps-ALPINE
       make install-deps
@@ -358,8 +360,6 @@ local setup_nix_step =
         'aws-region': 'us-west-2',
       },
     },
-  // See https://depot.dev/orgs/9ks3jwp44z/projects/fhmxj6w9z8/settings
-  depot_project_id: 'fhmxj6w9z8',
   opam_switch: opam_switch,
   opam_setup: opam_setup,
   // coupling: cli/setup.py, the matrix in run-cli-tests.libsonnet,
