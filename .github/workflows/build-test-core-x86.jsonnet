@@ -1,4 +1,4 @@
-// This workflow builds and test semgrep-core. It also generates an artifact
+// This workflow builds and test opengrep-core. It also generates an artifact
 // which is used in many other workflows such as tests.jsonnet or
 // build-test-manylinux-x86.jsonnet
 
@@ -7,7 +7,7 @@ local gha = import 'libs/gha.libsonnet';
 local semgrep = import 'libs/semgrep.libsonnet';
 
 // exported for other workflows
-local artifact_name = 'semgrep-core-x86-artifact';
+local artifact_name = 'opengrep-core-x86';
 
 // This container has opam already installed, as well as an opam switch
 // already created, and a big set of packages already installed. Thus,
@@ -37,13 +37,13 @@ local job =
         |||,
       },
       {
-        name: 'Build semgrep-core',
+        name: 'Build opengrep-core',
         run: 'opam exec -- make core',
       },
-      actions.make_artifact_step("bin/semgrep-core"),
+      actions.make_artifact_step("bin/opengrep-core"),
       actions.upload_artifact_step(artifact_name),
       {
-        name: 'Test semgrep-core',
+        name: 'Test opengrep-core',
         run: 'opam exec -- make core-test',
       }
     ]

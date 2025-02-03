@@ -158,7 +158,7 @@ local check_version_job = {
 };
 
 // make sure semgrep-pro was released and that we have the right
-// semgrep-core-proprietary in the right S3 bucket
+// opengrep-core-proprietary in the right S3 bucket
 local check_semgrep_pro_job = {
   needs: [
     'check-version',

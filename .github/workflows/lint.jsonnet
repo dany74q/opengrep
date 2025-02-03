@@ -106,7 +106,7 @@ local pre_commit_ocaml_job(checkout_steps) =
     // This custom image provides 'ocamlformat' with a specific version needed to check
     // OCaml code (must be the same than the one in dev/required.opam)
     // See https://github.com/returntocorp/ocaml-layer/blob/master/configs/ubuntu.sh
-    container: 'returntocorp/ocaml:ubuntu-2023-10-17',
+    container: 'ocamlpro/ocaml:5.2.1',
     steps: checkout_steps +
       [
       // HOME in the container is tampered by GHA and modified from /root to /home/github

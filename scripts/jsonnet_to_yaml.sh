@@ -18,6 +18,6 @@ set -euo pipefail
 # TODO: fix this by specifying which version of yq we should use.
 #
 jsonnet "$@" \
-| yq eval -P \
+| yqgo eval -P \
 | sed -e 's/^\( *\)"on":/\1on:/' \
 | sed -e 's/: "yes"$/: yes/'
