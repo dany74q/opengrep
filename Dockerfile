@@ -56,8 +56,6 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 ###############################################################################
 
 # We're now using a simple alpine:3.19 image in the FROM below.
-# TL;DR this used to be too slow but our use of https://depot.dev to accelerate
-# our docker build made this a viable and simpler option.
 #
 # The possible base container candidates are:
 #
@@ -65,17 +63,6 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #    extra 'apk' commands to install opam, and extra commands to setup OCaml
 #    with this opam from scratch. Moreover, 'opam' itself requires lots of extra
 #    tools like gcc, make, which are not provided by default on Alpine.
-#
-#    In theory, this can make a docker build really slow, like 30min, especially
-#    in Github Actions (GHA).
-#    We build a new Semgrep Docker image on each pull-request (PR) so we don't
-#    want to wait 30min each time just for 'docker build' to finish.
-#    Fortunately, our use of https://depot.dev allows us to cache intermediate
-#    steps which usually make the whole docker build to finish in a few minutes.
-#
-#  - 'ocaml/opam:alpine', the official OCaml/opam Docker image,
-#    but building our Docker image would still take time without depot.dev because
-#    of all the necessary Semgrep dependencies installed in 'make install-deps'.
 #
 #    Note also that ocaml/opam:alpine default user is 'opam', not 'root', which
 #    is not without problems when used inside Github actions (GHA) or even inside
@@ -98,10 +85,11 @@ COPY cli/src/semgrep/semgrep_interfaces cli/src/semgrep/semgrep_interfaces
 #    add a package or we wanted to switch to a different OCaml version.
 #    Being able to control everything from a single Dockerfile is simpler.
 
-FROM alpine:3.19 as semgrep-core-container
+FROM ocamlpro/ocaml:5.2.1 as semgrep-core-container
+USER root
 
-# Install opam and basic build tools
-RUN apk add --no-cache bash build-base git make opam
+# Install basic build tools
+RUN apk add --no-cache bash build-base git make zip tar zstd
 
 # coupling: if you modify the OCaml version there, you probably also need
 # to modify:
@@ -109,8 +97,7 @@ RUN apk add --no-cache bash build-base git make opam
 # - scripts/{osx-setup-for-release,setup-m1-builder}.sh
 # - doc/SEMGREP_CORE_CONTRIBUTING.md
 # - https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
-#TODO: switch to 5.2.0 at some point
-RUN opam init --disable-sandboxing -v && opam switch create 4.14.0 -v
+RUN opam init --no-setup --bare --disable-sandboxing -v && opam switch create 5.2.1 -v
 
 # Install semgrep-core build dependencies
 WORKDIR /src/semgrep
@@ -225,11 +212,11 @@ RUN apk add --no-cache --virtual=.build-deps build-base make &&\
      apk del .build-deps
 
 # Get semgrep-core from step1
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/semgrep-core
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe /usr/local/bin/opengrep-core
 
 # We don't need the python source anymore; 'pip install ...' above
 # installed them under /usr/local/lib/python3.xx/site-packages/semgrep/
-RUN ln -s semgrep-core /usr/local/bin/osemgrep && rm -rf /pysemgrep
+RUN ln -s opengrep-core /usr/local/bin/opengrep-cli && rm -rf /pysemgrep
 
 
 
@@ -282,7 +269,7 @@ RUN printf "[safe]\n	directory = /src"  > ~semgrep/.gitconfig && \
 # will show the help text, but
 #   docker run -it semgrep/semgrep /bin/bash
 # will let users bring up a bash session.
-CMD ["semgrep", "--help"]
+CMD ["opengrep", "--help"]
 LABEL maintainer="support@semgrep.com"
 
 ###############################################################################
@@ -297,7 +284,7 @@ LABEL maintainer="support@semgrep.com"
 #coupling: the 'semgrep-cli' name is used in release.jsonnet
 FROM semgrep-oss AS semgrep-cli
 
-RUN --mount=type=secret,id=SEMGREP_APP_TOKEN SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) semgrep install-semgrep-pro --debug
+RUN --mount=type=secret,id=SEMGREP_APP_TOKEN [ -f /run/secrets/SEMGREP_APP_TOKEN ] && SEMGREP_APP_TOKEN=$(cat /run/secrets/SEMGREP_APP_TOKEN) && [ -n "$SEMGREP_APP_TOKEN" ] && opengrep install-semgrep-pro --debug || true
 
 # Clear out any detritus from the pro install (especially credentials)
 RUN rm -rf /root/.semgrep
@@ -320,10 +307,10 @@ FROM semgrep-cli AS nonroot
 # the non-root user can run `semgrep install-semgrep-pro` and use Pro Engine
 # alt: we could also do this work directly in the root docker image.
 # TODO? now that we install semgrep-pro in step4, do we still need that?
-RUN rm /usr/local/bin/osemgrep && \
+RUN rm /usr/local/bin/opengrep-cli && \
     mkdir /home/semgrep/bin && \
-    mv /usr/local/bin/semgrep-core /home/semgrep/bin && \
-    ln -s semgrep-core /home/semgrep/bin/osemgrep && \
+    mv /usr/local/bin/opengrep-core /home/semgrep/bin && \
+    ln -s opengrep-core /home/semgrep/bin/osemgrep && \
     chown semgrep:semgrep /home/semgrep/bin
 
 # Update PATH with new core binary location
@@ -351,8 +338,8 @@ RUN apk add --no-cache build-base zip bash libffi-dev
 # Copy in the CLI
 COPY cli ./cli
 
-# Copy in semgrep-core executable
-COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe cli/src/semgrep/bin/semgrep-core
+# Copy in opengrep-core executable
+COPY --from=semgrep-core-container /src/semgrep/_build/default/src/main/Main.exe cli/src/semgrep/bin/opengrep-core
 
 # Copy in scripts folder
 COPY scripts/ ./scripts/

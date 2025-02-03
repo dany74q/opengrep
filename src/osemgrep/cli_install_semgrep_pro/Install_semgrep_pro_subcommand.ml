@@ -218,7 +218,7 @@ let run_conf (caps : < caps ; .. >) (conf : Install_semgrep_pro_CLI.conf) :
           [ !!semgrep_pro_path_tmp ];
 
         (* Get Pro version, it serves as a simple check that the binary works
-         * TODO: seems buggy, if passing --custom-binary ./bin/semgrep-core
+         * TODO: seems buggy, if passing --custom-binary ./bin/opengrep-core
          * the program returns an error (wrong -pro_version argument) but
          * the whole thing still succeed.
          *)

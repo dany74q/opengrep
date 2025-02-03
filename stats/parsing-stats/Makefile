@@ -1,4 +1,4 @@
-SEMGREP_CORE ?= semgrep-core
+SEMGREP_CORE ?= opengrep-core
 
 .PHONY: all
 all:

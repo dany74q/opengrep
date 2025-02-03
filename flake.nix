@@ -467,15 +467,15 @@
         apps = {
           osemgrep = {
             type = "app";
-            program = "${osemgrep}/bin/osemgrep";
+            program = "${osemgrep}/bin/opengrep-cli";
           };
           semgrep-core = {
             type = "app";
-            program = "${osemgrep}/bin/semgrep-core";
+            program = "${osemgrep}/bin/opengrep-core";
           };
           semgrep = {
             type = "app";
-            program = "${pysemgrep}/bin/semgrep";
+            program = "${pysemgrep}/bin/opengrep";
           };
           pysemgrep = {
             type = "app";
@@ -483,7 +483,7 @@
           };
           default = {
             type = "app";
-            program = "${pysemgrep}/bin/semgrep";
+            program = "${pysemgrep}/bin/opengrep";
           };
         };
         #   nix flake check ".?submodules=1#"

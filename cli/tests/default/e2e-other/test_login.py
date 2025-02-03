@@ -5,27 +5,6 @@ from semgrep.cli import cli
 from semgrep.config_resolver import ConfigFile
 from semgrep.config_resolver import ConfigLoader
 
-expected_logout_str = "Logged out (log back in with `semgrep login`)\n"
-
-# NOTE: Disabled because `login` is no longer a command.
-# TODO: Remove.
-
-# it should be ok to logout when not logged in and to logout twice
-@pytest.mark.slow
-@pytest.mark.pysemfail
-def test_logout_not_logged_in(tmp_path, mocker):
-    runner = SemgrepRunner(
-        env={"SEMGREP_SETTINGS_FILE": str(tmp_path / ".settings.yaml")},
-    )
-    result = runner.invoke(cli, subcommand="logout", args=[])
-    assert result.exit_code == 0
-    assert result.output == expected_logout_str
-
-    # Logout twice should work
-    result = runner.invoke(cli, subcommand="logout", args=[])
-    assert result.exit_code == 0
-    assert result.output == expected_logout_str
-
 
 # it should fail when run from a non-terminal shell
 @pytest.mark.slow
