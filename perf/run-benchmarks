@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 #
-# Run semgrep on a series of pairs (rules, repo) with different options,
-# and report the time it takes. Optionally upload the results to the semgrep
+# Run opengrep on a series of pairs (rules, repo) with different options,
+# and report the time it takes. Optionally upload the results to the opengrep
 # dashboard.
-# This script assumes the presence of 'semgrep' in the PATH.
+# This script assumes the presence of 'opengrep' in the PATH.
 #
 import argparse
 import copy
@@ -56,7 +56,7 @@ PERF_PATH = "OSS/perf"
 PERF_RULE_PATH = "OSS.perf"
 
 
-# This class allows us to put semgrep results in a set and compute set
+# This class allows us to put opengrep results in a set and compute set
 # differences while saving the original JSON dictionary
 class SemgrepResult:
     def __init__(self, dict: dict) -> None:
@@ -261,7 +261,7 @@ def run_semgrep(
             # some containers use /bin/bash as the entrypoint,
             # so we override it here
             "--entrypoint",
-            "semgrep",
+            "opengrep",
             docker,
             "--quiet",
             "--config",
@@ -272,7 +272,7 @@ def run_semgrep(
         # Absolute paths for rules and targets are required by semgrep
         # when running within the semgrep docker container.
         args = [
-            "semgrep",
+            "opengrep",
             "--config",
             os.path.abspath(corpus.rule_dir),
         ]
@@ -293,9 +293,9 @@ def run_semgrep(
         args.append(os.path.abspath(corpus.target_dir))
 
     print(f"current directory: {os.getcwd()}")
-    print("semgrep command: {}".format(" ".join(args)))
+    print("opengrep command: {}".format(" ".join(args)))
     os.environ["SEMGREP_CORE_EXTRA"] = variant.semgrep_core_extra
-    print(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
+    print(f"extra arguments for opengrep-core: '{variant.semgrep_core_extra}'")
 
     t1 = time.time()
     res = subprocess.run(  # nosem
@@ -304,15 +304,15 @@ def run_semgrep(
     t2 = time.time()
 
     status = res.returncode
-    print(f"semgrep exit status: {status}")
+    print(f"opengrep exit status: {status}")
     if status == 0:
         print("success")
     elif status == 3:
         print("warning: some files couldn't be parsed")
     else:
-        print("************* Semgrep stdout *************")
+        print("************* opengrep stdout *************")
         print(res.stdout)
-        print("************* Semgrep stderr *************")
+        print("************* opengrep stderr *************")
         print(res.stderr)
         res.check_returncode()
 
@@ -321,7 +321,7 @@ def run_semgrep(
         semgrep_results = json.loads(stdout_decoded)
     except (ValueError, json.JSONDecodeError):
         logger.error(
-            f"Unable to decode the Semgrep result as JSON. Exiting.\n******\n{res.stdout}"
+            f"Unable to decode the opengrep result as JSON. Exiting.\n******\n{res.stdout}"
         )
         sys.exit(1)
 
@@ -417,7 +417,7 @@ def generate_prep_file(
 
 def get_semgrep_version():
     return (
-        subprocess.run(["semgrep", "--version"], capture_output=True)
+        subprocess.run(["opengrep", "--version"], capture_output=True)
         .stdout.decode("utf-8")
         .strip()
     )
@@ -506,7 +506,7 @@ def run_benchmarks(
             for variant in variants:
                 # Run variant
                 name = ".".join(
-                    ["semgrep"] + options + ["bench", corpus.name, variant.name]
+                    ["opengrep"] + options + ["bench", corpus.name, variant.name]
                 )
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
@@ -570,7 +570,7 @@ def run_benchmarks(
 
             saved_findings.append(
                 {
-                    "name": ".".join(["semgrep", "bench", corpus.name]),
+                    "name": ".".join(["opengrep", "bench", corpus.name]),
                     "findings": jsonify_findings(std_findings),
                 }
             )

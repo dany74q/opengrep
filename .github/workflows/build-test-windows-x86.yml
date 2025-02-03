@@ -278,7 +278,7 @@ jobs:
           export CYGWIN_ROOT_BIN=/cygdrive/d/cygwin/bin
           export CYGWIN_MINGW_BIN=/usr/x86_64-w64-mingw32/sys-root/mingw/bin
           export PATH="${CYGWIN_ROOT_BIN}:${PATH}:${CYGWIN_MINGW_BIN}"
-          make install-deps-WINDOWS-for-semgrep-core
+          make install-deps-WINDOWS-for-opengrep-core
           make install-opam-deps
 
       - name: Prepare _opam for saving

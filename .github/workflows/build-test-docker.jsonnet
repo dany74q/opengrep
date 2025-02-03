@@ -87,28 +87,17 @@ local job = {
         tags: '${{ inputs.docker-tags }}',
       },
     },
-    // We're now using depot.dev to build our docker image which is
-    // more efficient, especially for arm64.
-    {
-      uses: 'depot/setup-action@v1',
-    },
     {
       name: 'Build image',
       id: 'build-image',
-      uses: 'depot/build-push-action@v1.9.0',
+      uses: 'docker/build-push-action@v6',
       with: {
-        project: semgrep.depot_project_id,
         platforms: 'linux/${{ matrix.architecture }}',
         outputs: 'type=docker,dest=/tmp/image.tar',
         tags: '${{ steps.meta.outputs.tags }}',
         labels: '${{ steps.meta.outputs.labels }}',
         file: '${{ inputs.file }}',
         target: '${{ inputs.target }}',
-        // We used to set this to true, just in case Depot had some bugs
-        // but this would fallback for any error, not just Depot error,
-        // and then you need to wait 1h30min to actually see the error
-        // so better to set this to false
-        'buildx-fallback': false,
         secrets: 'SEMGREP_APP_TOKEN=${{ secrets.SEMGREP_APP_TOKEN }}',
       },
     },
