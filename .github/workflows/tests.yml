@@ -87,11 +87,6 @@ jobs:
       - build-test-docker
     secrets: inherit
     uses: ./.github/workflows/build-test-manylinux-aarch64.yml
-  build-test-manylinux-x86:
-    needs:
-      - build-test-core-x86
-    secrets: inherit
-    uses: ./.github/workflows/build-test-manylinux-x86.yml
   build-test-osx-arm64:
     secrets: inherit
     uses: ./.github/workflows/build-test-osx-arm64.yml
@@ -101,16 +96,6 @@ jobs:
   build-test-windows-x86:
     secrets: inherit
     uses: ./.github/workflows/build-test-windows-x86.yml
-  push-docker-returntocorp:
-    if: github.ref == 'refs/heads/develop' || (github.actor != 'dependabot[bot]' && !(github.event.pull_request.head.repo.full_name != github.repository))
-    needs:
-      - build-test-docker
-    secrets: inherit
-    uses: ./.github/workflows/push-docker.yml
-    with:
-      artifact-name: semgrep-docker-image-artifact
-      dry-run: false
-      repository-name: semgrep/semgrep
   test-cli:
     name: test semgrep-cli
     needs:
@@ -195,6 +180,59 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+  test-opengrep-core:
+    container:
+      image: ocamlpro/ocaml:5.2.1
+      options: --user root
+    env:
+      HOME: /root
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make checkout speedy
+        run: git config --global fetch.parallel 50
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Configure git safedir properly
+        run: git config --global --add safe.directory $(pwd)
+      - env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
+        name: Set GHA cache for OPAM in ~/.opam
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{hashFiles('semgrep.opam')}}
+          path: ~/.opam
+      - name: Install dependencies
+        run: |
+          apk add --no-cache bash build-base git make zip tar zstd python3 py3-pip
+          opam init --no-setup --bare --disable-sandboxing -v && opam switch create 5.2.1 -v
+          make install-deps-ALPINE-for-semgrep-core
+          make install-opam-deps
+          make install-deps-for-semgrep-core
+          eval $(opam env)
+          make minimal-build
+          python3 -m venv venv
+          . venv/bin/activate
+          make -C interfaces/semgrep_interfaces setup-ALPINE setup
+      - name: Build opengrep-core
+        run: opam exec -- make core
+      - name: Test opengrep-core (and time it)
+        run: |
+          eval $(opam env)
+          . venv/bin/activate
+          START=`date +%s`
+
+          make core-test
+          make core-test-e2e
+
+          END=`date +%s`
+          TEST_RUN_TIME=$((END-START))
+          curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
+      - if: github.ref == 'refs/heads/develop'
+        name: Report Number of Tests Stats
+        run: ./scripts/report_test_metrics.sh
+      - name: Publish match performance
+        run: opam exec -- make report-perf-matching
   test-osemgrep:
     container:
       image: ocamlpro/ocaml:5.2.1
@@ -212,23 +250,29 @@ jobs:
         run: git config --global --add safe.directory $(pwd)
       - name: Build opengrep-core
         run: |
-          opam switch create 5.2.1
+          apk add --no-cache bash build-base git make zip tar zstd python3 py3-pip
+          opam init --no-setup --bare --disable-sandboxing -v && opam switch create 5.2.1 -v
+          make install-deps-ALPINE-for-semgrep-core
+          make install-opam-deps
+          make install-deps-for-semgrep-core
           eval $(opam env)
-          make install-deps-ALPINE
-          make install-deps
-          make core
+          make minimal-build
+          python3 -m venv venv
+          . venv/bin/activate
+          make -C interfaces/semgrep_interfaces setup-ALPINE setup
       - name: Install osemgrep
         run: |
           eval $(opam env)
           make copy-core-for-cli
       - name: Install Python dependencies
         run: |
-          apk add --no-cache python3
+          . venv/bin/activate
           pip install --no-cache-dir --ignore-installed distlib pipenv==2024.0.1
           (cd cli; pipenv install --dev)
       - name: Run pytest for osemgrep known passing tests
         run: |
           git config --global --add safe.directory "$(pwd)"
+          . ../venv/bin/activate
           make osempass
         working-directory: cli
   test-qa:
@@ -280,59 +324,6 @@ jobs:
           - 2
           - 3
           - 4
-  test-opengrep-core:
-    container:
-      image: ocamlpro/ocaml:5.2.1
-      options: --user root
-    env:
-      HOME: /root
-    runs-on: ubuntu-latest
-    steps:
-      - name: Make checkout speedy
-        run: git config --global fetch.parallel 50
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: Configure git safedir properly
-        run: git config --global --add safe.directory $(pwd)
-      - env:
-          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 2
-        name: Set GHA cache for OPAM in ~/.opam
-        uses: actions/cache@v3
-        with:
-          key: ${{ runner.os }}-${{ runner.arch }}-v1-opam-5.2.1-${{hashFiles('semgrep.opam')}}
-          path: ~/.opam
-      - name: Install dependencies
-        run: |
-          opam switch create 5.2.1
-          eval $(opam env)
-          make install-deps-ALPINE-for-semgrep-core
-          make install-deps-for-semgrep-core
-          make -C interfaces/semgrep_interfaces setup-ALPINE setup
-      - name: Build opengrep-core
-        run: opam exec -- make core
-      - name: Test opengrep-core (and time it)
-        run: |
-          eval $(opam env)
-          START=`date +%s`
-
-          make core-test
-          make core-test-e2e
-
-          END=`date +%s`
-          TEST_RUN_TIME=$((END-START))
-          curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
-      - if: github.ref == 'refs/heads/develop'
-        name: Report Number of Tests Stats
-        run: ./scripts/report_test_metrics.sh
-      - name: Publish match performance
-        run: opam exec -- make report-perf-matching
-  trigger-semgrep-comparison-argo:
-    if: ${{ github.event_name == 'pull_request' && !startsWith(github.event.pull_request.base.ref, 'release') && !startsWith(github.head_ref, 'release') }}
-    needs:
-      - push-docker-returntocorp
-    secrets: inherit
-    uses: ./.github/workflows/trigger-semgrep-comparison-argo.yml
 name: tests
 on:
   pull_request:

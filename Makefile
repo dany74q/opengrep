@@ -5,7 +5,7 @@
 # Many targets in this Makefile assume some commands have been run before to
 # setup the correct build environment supporting the different languages
 # used for Semgrep development:
-#  - for OCaml: 'ocamlc' and 'ocamlopt' (currently 4.14.0), 'dune', 'opam'
+#  - for OCaml: 'ocamlc' and 'ocamlopt' (currently 5.2.1), 'dune', 'opam'
 #  - for C: 'gcc', 'ld', 'pkgconfig', but also some C libs like PCRE, gmp
 #  - for Python: 'python3', 'pip', 'pipenv'
 #
@@ -321,6 +321,7 @@ install-deps: install-deps-for-semgrep-core
 # - zlib: ??
 # - openssl-libs-static: dependency of curl-static
 ALPINE_APK_DEPS_CORE=\
+  bash \
   pkgconf \
   pcre-dev \
   pcre2-dev \
@@ -328,18 +329,29 @@ ALPINE_APK_DEPS_CORE=\
   libev-dev \
   curl-dev \
   openssl-libs-static \
-  zlib-static
+  zlib-static \
+  libffi-dev \
+  libpsl-static \
+  zstd-static \
+  libidn2-static \
+  libunistring-static
 
 # Here is why we need those external packages:
 # - pkg-config?
 # NOTE: libpcre3 is actually libpcre
 UBUNTU_DEPS=\
+  bash \
   pkg-config \
   libpcre3-dev \
   libpcre2-dev \
   libgmp-dev \
   libev-dev \
-  libcurl4-gnutls-dev
+  libcurl4-gnutls-dev \
+  libzstd-dev \
+  libffi-dev \
+  libpsl-dev \
+  libidn2-dev \
+  libunistring-dev
 
 #TODO: ARCH_DEPS=??
 
@@ -358,7 +370,8 @@ BREW_DEPS=\
   libev \
   curl \
   coreutils \
-  gettext
+  gettext \
+  zstd
 
 # TODO? why we need those for Windows and not for Linux?
 # The opam "depext" are better handled in Linux?

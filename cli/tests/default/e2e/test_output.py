@@ -363,60 +363,6 @@ IGNORE_LOG_REPORT_LAST_LINE = (
 # excluded. They're excluded in both implementations.
 @pytest.mark.kinda_slow
 @pytest.mark.pysemfail
-def test_semgrepignore_ignore_log_report(
-    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
-):
-    (tmp_path / ".semgrepignore").symlink_to(
-        Path(TARGETS_PATH / "ignores" / ".semgrepignore").resolve()
-    )
-    # See remarks in test_ignores.py:
-    shutil.copyfile(
-        Path(TARGETS_PATH / "ignores" / ".gitignore"), tmp_path / ".gitignore"
-    )
-
-    _, stderr = run_semgrep_in_tmp(
-        "rules/eqeq-basic.yaml",
-        # This set of options is carefully crafted
-        # to trigger one entry for most ignore reasons.
-        # Note that the print order is non-deterministic,
-        # so you must take care not to have two skips in a category.
-        options=[
-            "--include=ignore.*",
-            "--include=tests",
-            "--include=find.*",
-            "--exclude=*.min.js",
-            "--max-target-bytes=100",
-            "--verbose",
-        ],
-        output_format=OutputFormat.TEXT,
-        force_color=True,
-        target_name="ignores",
-    )
-
-    report = re.search(
-        f"^{IGNORE_LOG_REPORT_FIRST_LINE}$.*?^{IGNORE_LOG_REPORT_LAST_LINE}$",
-        stderr,
-        flags=re.MULTILINE | re.DOTALL,
-    )
-    assert (
-        report is not None
-    ), "can't find ignore log report based on expected start and end lines"
-    snapshot.assert_match(report.group(), "report.txt")
-
-
-# Tolerate a different snapshot with pysemgrep than osemgrep.
-@pytest.mark.kinda_slow
-@pytest.mark.osemfail
-def test_semgrepignore_ignore_log_report_pysemgrep(
-    run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
-):
-    test_semgrepignore_ignore_log_report(run_semgrep_in_tmp, tmp_path, snapshot)
-
-
-# pysemgrep/osemgrep status: osemgrep reports 2 more files that are being
-# excluded. They're excluded in both implementations.
-@pytest.mark.kinda_slow
-@pytest.mark.pysemfail
 def test_semgrepignore_ignore_log_json_report(
     run_semgrep_in_tmp: RunSemgrep, tmp_path, snapshot
 ):

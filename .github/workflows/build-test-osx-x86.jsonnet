@@ -1,4 +1,4 @@
-// This workflow builds and tests the semgrep-core binary for macOS X86
+// This workflow builds and tests the opengrep-core binary for macOS X86
 // and generates the osx-wheel for pypi.
 
 // coupling: if you modify this file, modify also build-test-osx-arm64.jsonnet
@@ -22,24 +22,24 @@ local runs_on = 'macos-13';
 // This is reused in build-test-osx-arm64.jsonnet
 local test_semgrep_steps = [
   {
-    run: 'semgrep --version',
+    run: 'opengrep --version',
   },
   {
-    name: 'e2e semgrep-core test',
-    run: "echo '1 == 1' | semgrep -l python -e '$X == $X' -",
+    name: 'e2e opengrep-core test',
+    run: "echo '1 == 1' | opengrep -l python -e '$X == $X' -",
   },
   {
     name: 'test dynamically linked libraries are in /usr/lib/',
     shell: 'bash {0}',
     run: |||
-      otool -L $(semgrep --dump-engine-path) | tee otool.txt
+      otool -L $(opengrep --dump-engine-path) | tee otool.txt
       if [ $? -ne 0 ]; then
          echo "Failed to list dynamically linked libraries.";
          exit 1;
       fi
       NON_USR_LIB_DYNAMIC_LIBRARIES=$(tail -n +2 otool.txt | grep -v "^\\s*/usr/lib/")
       if [ $? -eq 0 ]; then
-         echo "Error: semgrep-core has been dynamically linked against libraries outside /usr/lib:"
+         echo "Error: opengrep-core has been dynamically linked against libraries outside /usr/lib:"
          echo $NON_USR_LIB_DYNAMIC_LIBRARIES
          exit 1;
       fi;
@@ -71,7 +71,7 @@ local build_core_job = {
       name: 'Compile semgrep (in case of linking errors, adjust src/main/flags.sh)',
       run: 'opam exec -- make core',
     },
-    actions.make_artifact_step("./bin/semgrep-core"),
+    actions.make_artifact_step("./bin/opengrep-core"),
     actions.upload_artifact_step(artifact_name),
   ],
 };
@@ -87,7 +87,7 @@ local build_wheels_job = {
     {
       run: |||
         tar xvfz artifacts.tgz
-        cp artifacts/semgrep-core cli/src/semgrep/bin
+        cp artifacts/opengrep-core cli/src/semgrep/bin
         ./scripts/build-wheels.sh --plat-name macosx_10_14_x86_64
       |||,
     },

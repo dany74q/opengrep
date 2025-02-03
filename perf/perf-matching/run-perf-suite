@@ -13,7 +13,7 @@ from typing import List
 HOST = "https://dashboard.semgrep.dev"
 
 # This script assumes it's run from the current directory
-SEMGREP_CORE = "../../bin/semgrep-core"
+SEMGREP_CORE = "../../bin/opengrep-core"
 
 
 class Test:
