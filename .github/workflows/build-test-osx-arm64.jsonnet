@@ -1,4 +1,4 @@
-// This workflow builds and tests the semgrep-core binary for macOS arm64
+// This workflow builds and tests the opengrep-core binary for macOS arm64
 // and generates the arm64-wheel for pypi.
 // coupling: if you modify this file, modify also build-test-osx-x86.jsonnet
 
@@ -67,10 +67,10 @@ local build_core_job = {
       name: 'Compile semgrep',
       run: "opam exec -- make core",
     },
-    actions.make_artifact_step("./bin/semgrep-core"),
+    actions.make_artifact_step("./bin/opengrep-core"),
     actions.upload_artifact_step(artifact_name),
     {
-      name: 'Test semgrep-core',
+      name: 'Test opengrep-core',
       run: 'opam exec -- make core-test',
     }
   ],
@@ -91,7 +91,7 @@ local build_wheels_job = {
     {
       run: |||
         tar xvfz artifacts.tgz
-        cp artifacts/semgrep-core cli/src/semgrep/bin
+        cp artifacts/opengrep-core cli/src/semgrep/bin
         ./scripts/build-wheels.sh --plat-name macosx_11_0_arm64
       |||,
     },

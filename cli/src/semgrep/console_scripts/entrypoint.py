@@ -110,10 +110,10 @@ def find_semgrep_core_path(pro=False, extra_message=""):
 
     # Second, try in PATH. In certain context such as Homebrew
     # (see https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb)
-    # or Docker (see ../../Dockerfile), we actually copy semgrep-core in
+    # or Docker (see ../../Dockerfile), we actually copy opengrep-core in
     # /usr/local/bin (or in a bin/ folder in the PATH). In those cases,
-    # there is no /.../site-packages/semgrep-xxx/bin/semgrep-core.
-    # In those cases, we want to grab semgrep-core from the PATH instead.
+    # there is no /.../site-packages/opengrep-xxx/bin/opengrep-core.
+    # In those cases, we want to grab opengrep-core from the PATH instead.
     path = shutil.which(core)
     if path is not None:
         return path

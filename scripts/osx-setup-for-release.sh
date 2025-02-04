@@ -15,21 +15,18 @@ set -eux
 # pre-existing opam config from an old version, it will ask if we want to
 # upgrade. Without this, that question will bring down the whole run.
 export OPAMYES=true
+export MACOSX_DEPLOYMENT_TARGET=10.10
+
+HOMEBREW_PATH="$HOME/homebrew"
+mkdir -p $HOMEBREW_PATH
+curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip-components 1 -C $HOMEBREW_PATH
+export PATH="$HOMEBREW_PATH/bin:$PATH"
 
 brew install opam
 opam init --no-setup --bare
-#still needed?
-#brew update
-
-# Some CI runners have tree-sitter preinstalled which interfere with
-# out static linking plans below so better to remove it.
-# TODO: fix setup-m1-builder.sh instead?
-# brew uninstall --force semgrep
-brew uninstall --force tree-sitter
-
-SWITCH_NAME="${1:-5.2.1}"
 
 #coupling: this should be the same version than in our Dockerfile
+SWITCH_NAME="${1:-5.2.1}"
 if opam switch "${SWITCH_NAME}" 2>/dev/null; then
     # This happens because the self-hosted CI runners do not
     # cleanup things between each run.
@@ -41,21 +38,13 @@ else
 fi
 eval "$(opam env)"
 
-#pad:??? What was for? This was set only for the M1 build before
-# Needed so we don't make config w/ sudo
-export HOMEBREW_SYSTEM=1
-
 make install-deps-MACOS-for-semgrep-core
-# We do this so we build LWT with libev on the path
-# Coupling: This should be similar to homebrew setup
-# austin: Why can't we use make homebrew-setup here? It doesn't seem to work
-#         because of something with how tree-sitter is installed.
-LIBRARY_PATH="$(brew --prefix)/lib" make install-deps-for-semgrep-core
+export LIBRARY_PATH="$(brew --prefix)/lib:${LIBRARY_PATH:-}"
+make install-deps-for-semgrep-core
 
-# Allow pkg-config to pick up tree-sitter in GitHub Actions.
 if [ -n "${GITHUB_ENV+set}" ]; then
-    # We have to use a parameter expansion here since CI does not consistently
-    # have PKG_CONFIG_PATH set and this would otherwise cause the CI step
-    # running this script to fail.
-    echo "PKG_CONFIG_PATH=$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib/pkgconfig:${PKG_CONFIG_PATH+"${PKG_CONFIG_PATH}"}" >> "$GITHUB_ENV"
+    echo MACOSX_DEPLOYMENT_TARGET=10.10 >> "$GITHUB_ENV"
+    echo "PATH=$PATH" >> "$GITHUB_ENV"
+    echo "LIBRARY_PATH=${LIBRARY_PATH}" >> "$GITHUB_ENV"
+    echo "PKG_CONFIG_PATH=$(brew --prefix)/lib/pkgconfig:$(brew --prefix)/opt/zlib/lib/pkgconfig:$HOME/curl-static/lib/pkgconfig:$(pwd)/libs/ocaml-tree-sitter-core/tree-sitter/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
 fi

@@ -199,7 +199,7 @@ local park_pypi_packages_job = {
     {
       run: 'pipenv install --dev',
     },
-    // There are no semgrep-core here, just the Python code.
+    // There are no opengrep-core here, just the Python code.
     // The wheels are separately added to the pypi package
     // in the upload-wheels job below.
     {

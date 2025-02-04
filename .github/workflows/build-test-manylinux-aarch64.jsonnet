@@ -23,18 +23,13 @@ local build_wheels_job = {
       uses: 'docker/setup-buildx-action@v2',
     },
     {
-      uses: 'depot/setup-action@v1',
-    },
-    {
       name: 'Build and test python wheel',
       id: 'build-semgrep-wheel',
-      uses: 'depot/build-push-action@v1.9.0',
+      uses: 'docker/build-push-action@v6',
       with: {
-        project: semgrep.depot_project_id,
         platforms: 'linux/arm64',
         outputs: 'type=docker,dest=/tmp/image.tar',
         target: 'semgrep-wheel',
-        'buildx-fallback': true,
       },
     },
     {
